@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="id" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz UUD 1945</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-color: #0f172a;
+      --surface-color: #1e293b;
+      --text-color: #f1f5f9;
+      --accent-color: #b91c1c;
+      --accent-grad: linear-gradient(135deg, var(--accent-color), #dc2626);
+      --muted-color: #94a3b8;
+      --border-color: #334155;
+      --font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    * { font-family: var(--font-family); box-sizing: border-box; }
+    body { background-color: var(--bg-color); color: var(--text-color); }
+    
+    .surface { background-color: var(--surface-color); border-color: var(--border-color); }
+    .text-muted { color: var(--muted-color); }
+    .bg-accent { background: var(--accent-grad); color: #fff; }
+
+    .opt-btn { transition: all 0.25s ease; border: 2px solid var(--border-color); }
+    .opt-btn:hover { transform: translateY(-2px); }
+    .opt-btn.correct { background: #16a34a !important; color: #fff !important; border-color: #16a34a !important; }
+    .opt-btn.wrong { background: #dc2626 !important; color: #fff !important; border-color: #dc2626 !important; }
+    .opt-btn.reveal { border-color: #16a34a !important; background: rgba(22,163,74,0.1) !important; }
+    
+    .fade-in { animation: fadeIn 0.4s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    
+    @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+    .score-pulse { animation: pulse 0.5s ease; }
+  </style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+</head>
+<body class="h-full">
+  <div id="app" class="h-full w-full overflow-auto">
+    
+    <div id="home-screen" class="min-h-full flex flex-col items-center justify-center p-6 text-center">
+      <div class="mb-6">
+        <div class="w-20 h-20 mx-auto rounded-2xl flex items-center justify-center text-4xl bg-accent">🇮🇩</div>
+      </div>
+      <h1 id="main-title" class="text-3xl md:text-4xl font-extrabold mb-2">Quiz UUD 1945</h1>
+      <p id="main-subtitle" class="text-lg font-medium mb-10 text-muted">Pasal 26 & 27</p>
+      <p class="text-sm font-semibold mb-4 tracking-widest uppercase text-muted">Pilih Tipe Soal</p>
+      
+      <div class="flex flex-col gap-4 w-full max-w-sm">
+        <button onclick="startQuiz('content-to-article')" class="opt-btn surface w-full py-4 px-6 rounded-xl font-bold text-left flex items-center gap-4">
+          <span class="shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-lg bg-accent">A</span>
+          <span><span class="block text-sm text-muted font-normal">Tipe 1</span>Baca Isi → Tebak Pasal & Ayat</span>
+        </button>
+        <button onclick="startQuiz('article-to-content')" class="opt-btn surface w-full py-4 px-6 rounded-xl font-bold text-left flex items-center gap-4">
+          <span class="shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-lg bg-accent">B</span>
+          <span><span class="block text-sm text-muted font-normal">Tipe 2</span>Baca Pasal & Ayat → Tebak Isinya</span>
+        </button>
+      </div>
+    </div>
+
+    <div id="quiz-screen" class="min-h-full flex flex-col p-4 md:p-6 hidden">
+      <header class="flex items-center justify-between mb-4">
+        <button onclick="goHome()" class="surface w-10 h-10 rounded-lg flex items-center justify-center text-muted">
+          <i data-lucide="arrow-left" class="w-5 h-5"></i>
+        </button>
+        <div class="flex items-center gap-3">
+          <span id="score-badge" class="surface px-3 py-1 rounded-full text-sm font-bold">0 / 0</span>
+          <span id="q-counter" class="text-sm font-semibold text-muted"></span>
+        </div>
+      </header>
+      
+      <div class="w-full rounded-full h-2 mb-6 surface overflow-hidden border-0">
+        <div id="progress-bar" class="h-full transition-all duration-500 bg-accent" style="width: 0%;"></div>
+      </div>
+      
+      <div id="question-area" class="fade-in flex-1 flex flex-col">
+        <div class="surface rounded-2xl p-5 md:p-6 mb-6 border">
+          <p id="q-label" class="text-xs font-bold tracking-widest uppercase mb-3" style="color: var(--accent-color);">PERTANYAAN</p>
+          <p id="q-text" class="text-lg md:text-xl font-semibold leading-relaxed"></p>
+        </div>
+        <div id="options-container" class="flex flex-col gap-3"></div>
+      </div>
+      
+      <button id="next-btn" onclick="nextQuestion()" class="hidden mt-6 w-full py-4 rounded-xl font-bold text-center bg-accent">
+        Soal Berikutnya →
+      </button>
+    </div>
+
+    <div id="result-screen" class="min-h-full flex flex-col items-center justify-center p-6 text-center hidden">
+      <div class="text-6xl mb-4 score-pulse" id="result-emoji"></div>
+      <h2 class="text-2xl md:text-3xl font-extrabold mb-2">Quiz Selesai!</h2>
+      <p id="result-text" class="text-lg mb-2 text-muted"></p>
+      <div id="result-score" class="text-5xl font-extrabold my-6" style="color: var(--accent-color);"></div>
+      <div class="flex flex-col gap-3 w-full max-w-xs">
+        <button onclick="restartSameMode()" class="opt-btn py-3 rounded-xl font-bold bg-accent border-0">Ulangi Quiz</button>
+        <button onclick="goHome()" class="opt-btn surface py-3 rounded-xl font-bold">Kembali ke Menu</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Inisialisasi Audio dari Internet (Google Actions Library)
+    const audioBenar = new Audio('https://actions.google.com/sounds/v1/cartoon/magic_chime_01.ogg');
+    const audioSalah = new Audio('https://actions.google.com/sounds/v1/cartoon/buzz.ogg');
+
+    const DATA = [
+      { pasal:"26", ayat:"1", isi:"Yang menjadi warga negara ialah orang-orang bangsa Indonesia asli dan orang-orang bangsa lain yang disahkan dengan undang-undang sebagai warga negara." },
+      { pasal:"26", ayat:"2", isi:"Penduduk ialah warga negara Indonesia dan orang asing yang bertempat tinggal di Indonesia." },
+      { pasal:"26", ayat:"3", isi:"Hal-hal mengenai warga negara dan penduduk diatur dengan undang-undang." },
+      { pasal:"27", ayat:"1", isi:"Segala warga negara bersamaan kedudukannya di dalam hukum dan pemerintahan dan wajib menjunjung hukum dan pemerintahan itu dengan tidak ada kecualinya." },
+      { pasal:"27", ayat:"2", isi:"Tiap-tiap warga negara berhak atas pekerjaan dan penghidupan yang layak bagi kemanusiaan." },
+      { pasal:"27", ayat:"3", isi:"Setiap warga negara berhak dan wajib ikut serta dalam upaya pembelaan negara." }
+    ];
+
+    let mode='', questions=[], currentQ=0, score=0, answered=false;
+
+    const shuffle = (arr) => {
+      const a = [...arr];
+      for(let i = a.length - 1; i > 0; i--){
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    };
+
+    const generateQuestions = (m) => {
+      return shuffle(DATA).map(item => {
+        const isContentToArticle = m === 'content-to-article';
+        const correctAns = isContentToArticle ? `Pasal ${item.pasal} Ayat (${item.ayat})` : item.isi;
+        const qText = isContentToArticle ? `"${item.isi}"` : `Pasal ${item.pasal} Ayat (${item.ayat})`;
+        
+        const wrongs = DATA
+          .filter(d => d.pasal !== item.pasal || d.ayat !== item.ayat)
+          .map(d => isContentToArticle ? `Pasal ${d.pasal} Ayat (${d.ayat})` : d.isi);
+          
+        return {
+          question: qText,
+          correct: correctAns,
+          options: shuffle([correctAns, ...shuffle(wrongs).slice(0, 3)])
+        };
+      });
+    };
+
+    const show = (id) => { 
+      ['home-screen', 'quiz-screen', 'result-screen'].forEach(s => document.getElementById(s).classList.add('hidden')); 
+      document.getElementById(id).classList.remove('hidden'); 
+    };
+
+    function startQuiz(m) {
+      mode = m; questions = generateQuestions(m); currentQ = 0; score = 0; answered = false;
+      show('quiz-screen'); renderQuestion();
+    }
+    
+    function restartSameMode(){ startQuiz(mode); }
+    function goHome(){ show('home-screen'); }
+
+    function renderQuestion() {
+      answered = false;
+      const q = questions[currentQ];
+      
+      document.getElementById('q-label').textContent = mode === 'content-to-article' ? 'ISI PASAL' : 'PASAL & AYAT';
+      document.getElementById('q-text').textContent = q.question;
+      document.getElementById('q-counter').textContent = `${currentQ + 1} / ${questions.length}`;
+      document.getElementById('score-badge').textContent = `⭐ ${score}`;
+      document.getElementById('progress-bar').style.width = `${((currentQ) / questions.length) * 100}%`;
+      document.getElementById('next-btn').classList.add('hidden');
+
+      const container = document.getElementById('options-container');
+      container.innerHTML = '';
+      const labels = ['A','B','C','D'];
+      
+      q.options.forEach((opt, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'opt-btn surface w-full py-4 px-5 rounded-xl font-semibold text-left flex items-start gap-3';
+        const fontSize = mode === 'article-to-content' ? '0.9rem' : '1rem';
+        btn.innerHTML = `
+          <span class="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold bg-slate-700 text-slate-300 border">${labels[i]}</span>
+          <span class="pt-0.5 leading-relaxed" style="font-size: ${fontSize};">${opt}</span>
+        `;
+        btn.onclick = () => selectAnswer(btn, opt, q.correct);
+        container.appendChild(btn);
+      });
+
+      const qArea = document.getElementById('question-area');
+      qArea.classList.remove('fade-in');
+      void qArea.offsetWidth; // Trigger reflow
+      qArea.classList.add('fade-in');
+    }
+
+    function selectAnswer(btn, selected, correct) {
+      if(answered) return;
+      answered = true;
+      const allBtns = document.querySelectorAll('#options-container .opt-btn');
+      
+      if(selected === correct) {
+        score++; 
+        btn.classList.add('correct');
+        // Mainkan suara benar
+        audioBenar.currentTime = 0; 
+        audioBenar.play().catch(e => console.log("Gagal memutar audio:", e));
+      } else {
+        btn.classList.add('wrong');
+        // Mainkan suara salah
+        audioSalah.currentTime = 0; 
+        audioSalah.play().catch(e => console.log("Gagal memutar audio:", e));
+        
+        // Tunjukkan jawaban yang benar
+        allBtns.forEach(b => { 
+          if(b.querySelector('span:last-child').textContent === correct) b.classList.add('reveal'); 
+        });
+      }
+      
+      allBtns.forEach(b => b.style.pointerEvents = 'none');
+      
+      const scoreBadge = document.getElementById('score-badge');
+      scoreBadge.textContent = `⭐ ${score}`;
+      scoreBadge.classList.remove('score-pulse');
+      void scoreBadge.offsetWidth;
+      scoreBadge.classList.add('score-pulse');
+
+      const nb = document.getElementById('next-btn');
+      nb.classList.remove('hidden');
+      nb.textContent = currentQ < questions.length - 1 ? 'Soal Berikutnya →' : 'Lihat Hasil 🎉';
+    }
+
+    function nextQuestion() {
+      currentQ++;
+      if(currentQ >= questions.length) { showResult(); return; }
+      renderQuestion();
+    }
+
+    function showResult() {
+      show('result-screen');
+      const pct = Math.round((score / questions.length) * 100);
+      document.getElementById('result-emoji').textContent = pct === 100 ? '🏆' : pct >= 60 ? '👏' : '💪';
+      document.getElementById('result-text').textContent = pct === 100 ? 'Sempurna! Kamu menguasai materi!' : pct >= 60 ? 'Bagus! Terus tingkatkan!' : 'Jangan menyerah, coba lagi!';
+      document.getElementById('result-score').textContent = `${score} / ${questions.length}`;
+      document.getElementById('progress-bar').style.width = '100%';
+    }
+
+    // Element SDK
+    const defaultConfig = {
+      app_title: 'Quiz UUD 1945',
+      subtitle: 'Pasal 26 & 27',
+      background_color: '#0f172a',
+      surface_color: '#1e293b',
+      text_color: '#f1f5f9',
+      accent_color: '#b91c1c',
+      muted_color: '#94a3b8',
+      font_family: 'Plus Jakarta Sans',
+      font_size: 16
+    };
+
+    function applyConfig(config) {
+      const c = {...defaultConfig, ...config};
+      
+      document.getElementById('main-title').textContent = c.app_title;
+      document.getElementById('main-subtitle').textContent = c.subtitle;
+      
+      const root = document.documentElement;
+      root.style.setProperty('--bg-color', c.background_color);
+      root.style.setProperty('--surface-color', c.surface_color);
+      root.style.setProperty('--text-color', c.text_color);
+      root.style.setProperty('--accent-color', c.accent_color);
+      root.style.setProperty('--accent-grad', `linear-gradient(135deg, ${c.accent_color}, #dc2626)`);
+      root.style.setProperty('--muted-color', c.muted_color);
+      root.style.setProperty('--font-family', `${c.font_family}, 'Plus Jakarta Sans', sans-serif`);
+      root.style.setProperty('font-size', `${c.font_size}px`);
+    }
+
+    window.elementSdk.init({
+      defaultConfig,
+      onConfigChange: async (config) => applyConfig(config),
+      mapToCapabilities: (config) => ({
+        recolorables: [
+          { get:()=>config.background_color||defaultConfig.background_color, set:(v)=>{config.background_color=v; window.elementSdk.setConfig({background_color:v});} },
+          { get:()=>config.surface_color||defaultConfig.surface_color, set:(v)=>{config.surface_color=v; window.elementSdk.setConfig({surface_color:v});} },
+          { get:()=>config.text_color||defaultConfig.text_color, set:(v)=>{config.text_color=v; window.elementSdk.setConfig({text_color:v});} },
+          { get:()=>config.accent_color||defaultConfig.accent_color, set:(v)=>{config.accent_color=v; window.elementSdk.setConfig({accent_color:v});} },
+          { get:()=>config.muted_color||defaultConfig.muted_color, set:(v)=>{config.muted_color=v; window.elementSdk.setConfig({muted_color:v});} }
+        ],
+        borderables: [],
+        fontEditable: { get:()=>config.font_family||defaultConfig.font_family, set:(v)=>{config.font_family=v; window.elementSdk.setConfig({font_family:v});} },
+        fontSizeable: { get:()=>config.font_size||defaultConfig.font_size, set:(v)=>{config.font_size=v; window.elementSdk.setConfig({font_size:v});} }
+      }),
+      mapToEditPanelValues: (config) => new Map([
+        ["app_title", config.app_title || defaultConfig.app_title],
+        ["subtitle", config.subtitle || defaultConfig.subtitle]
+      ])
+    });
+
+    lucide.createIcons();
+  </script>
+</body>
+</html>
